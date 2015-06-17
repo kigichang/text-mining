@@ -35,7 +35,8 @@ object ParseMomo {
     Files.write(Paths.get("/Users/kigi/momo2.csv"), ('\ufeff' + content.toString()).getBytes("UTF-8"))
     */
     
-    /*val header = bom + """"編碼","品名","價格","第一層目錄","第二層目錄","第三層目錄"""" + "\n"
+    /*
+    val header = bom + """"編碼","品名","價格","第一層目錄","第二層目錄","第三層目錄"""" + "\n"
     
     val file2 = Source.fromFile("/Users/kigi/momo2.csv", "UTF-8")
     
@@ -56,22 +57,68 @@ object ParseMomo {
     
     file2.close
     */
+    
       
+    val storeFile = Source.fromFile("/Users/kigi/store.csv", "UTF-8")
+    
+    val storeSeq = storeFile.getLines().toSeq.drop(1)
+    
+    val stores = storeSeq.map { line => 
+      val tmp = line.split(',')
+      
+      if (tmp.length != 3)
+        println(line)
+        
+      (tmp(1), tmp(2).substring(1, tmp(2).length() - 1))
+    }.toMap
+    
+    //for ((k, v) <- stores) {
+    //  println(k, v)
+    //}
+    
+    storeFile.close
+    
     val file3 = Source.fromFile("/Users/kigi/gohappy.csv", "UTF-8")
-    val header3 = bom + file3.getLines().take(1).next()
+    val header3 = bom + """"商品編號","促銷小標","商品名稱","品牌","廠商建議價","網路價","促銷價","目前價格","全點數兌換","點+金的金額","點+金的點數","小圖","促銷開始日期","促銷結束日期","是否在促銷","館名稱","分身目錄","作者","出版社","ISBN","出版日期","寄送方式""""
+
     
     val lines = file3.getLines().toSeq.drop(1)
     
-    val groups = lines.groupBy { line =>
-      val tmp = line.split(',')
-      if (tmp.length < 15)
-        println(line)
-      //else
-      //  println(tmp(15))
+    val groups = lines groupBy { line =>
+      val tmp = line.split("\",")
+      if (tmp.length != 22)
+        println(tmp.length, line)
+      
+      
+      val pos = tmp(15).indexOf(":>")
+      
+      val storeName = if (pos > 0) {
+        val sid = tmp(15).substring(2, pos)
+        stores.get(sid).getOrElse("Unknow2")
+      }
+      else "查無分類"
+      
+      //if (storeName == "Unknow2") println(storeName, line)
+      storeName
+    }
+    
+    
+    for ((k, v) <- groups) {
+      val fileName = k.replace(java.io.File.separatorChar, '-')
+      //println(fileName, v.mkString("\n"))
+      val cons = v map { line =>
+        val tmp = line.split("\",")
+        tmp(15) = "\"" + k
+        tmp.mkString("\",") 
+      }
+      
+      Files.write(Paths.get(s"/Users/kigi/gohappy2-${fileName}.csv"), (header3 + "\n" + cons.mkString("\n")).getBytes("UTF-8"))
     }
     
     
     file3.close
+    
+    
     println("End")
   }
 }
